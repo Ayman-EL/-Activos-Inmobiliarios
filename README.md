@@ -1,0 +1,1 @@
+Esta herramienta contiene 4 scripts de JavaScript y una foto donde "renta_2" es la página principal de nuestra herramienta. Los demás scripts corresponden a diferentes calculadoras, según lo que elija el cliente.
