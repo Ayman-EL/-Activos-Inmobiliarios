@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculadora EBITDA Completa</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 20px; background-color: #f5f7fa; }
+    .section { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 1000px; margin: auto; }
+    .input-group { margin: 15px 0; }
+    label { display: inline-block; width: 320px; }
+    input, select { width: 200px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 10px 20px; background: #0074D9; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 20px; font-weight: bold; }
+    button:hover { background: #005fa3; }
+    #productos-container { margin-top: 20px; }
+    .producto { margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; position: relative; }
+    .producto h4 { margin-top: 0; }
+    .eliminar-btn { position: absolute; top: 10px; right: 10px; background: #e74c3c; color: white; border: none; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+    .eliminar-btn:hover { background: #c0392b; }
+    .info { font-size: 14px; color: #888; margin-left: 5px; cursor: pointer; }
+    canvas { margin-top: 40px; max-width: 900px; }
+    .back-button { margin-top: 20px; display: inline-block; background: #ccc; color: #333; padding: 8px 15px; border-radius: 6px; text-decoration: none; }
+
+  </style>
+</head>
+<body>
+<div class="section">
+  <a href="renta_2.html" class="back-button">🏠 Volver al inicio</a>
+  <h2>📊 Calculadora de Valoración por EBITDA</h2>
+
+  <div class="input-group">
+    <label for="visitantes">👣 Visitantes por mes:</label>
+    <input type="number" id="visitantes" value="2000" min="0">
+  </div>
+
+  <div class="input-group">
+    <label for="tipoNegocio">🏭 Sector de negocio:</label>
+    <div class="conversion-group">
+      <select id="tipoNegocio" onchange="actualizarTasaConversion()">
+        <option value="5">Ropa</option>
+        <option value="4">Electrónica de consumo</option>
+        <option value="18">Farmacia</option>
+        <option value="20">Supermercado</option>
+        <option value="30">Peluquería</option>
+        <option value="7">Librería</option>
+        <option value="5">Animales</option>
+        <option value="custom">Personalizada</option>
+      </select>
+      <input type="number" id="conversion" value="5" step="0.1" min="0" max="100" onchange="forzarPersonalizado()">
+    </div>
+  </div>
+
+  <div id="productos-container"></div>
+  <button onclick="agregarProducto()">➕ Añadir producto</button>
+
+  <h3>⚙️ Costes e Inversiones</h3>
+
+  <div class="input-group">
+    <label>👷 Coste de personal anual (€): <span class="info" title="1 empleado por cada 3000 visitantes mensuales">ℹ️</span></label>
+    <input type="number" id="costePersonal" value="20000" readonly>
+  </div>
+
+  <div class="input-group">
+    <label>🔧 Coste de mantenimiento anual (€):</label>
+    <input type="number" id="costeMantenimiento" value="10000">
+  </div>
+
+  <div class="input-group">
+    <label>🏗️ Inversiones amortizadas anuales (€):</label>
+    <input type="number" id="inversionAmortizada" value="5000">
+  </div>
+
+  <div class="input-group">
+    <label>💸 Inversiones al momento (€):</label>
+    <input type="number" id="inversionMomento" value="2000">
+  </div>
+
+  <div class="input-group">
+    <label>📈 Múltiplo de EBITDA:</label>
+    <input type="number" id="multiplicador" value="6" step="0.1">
+  </div>
+
+  <button onclick="calcularEBITDA()">Calcular Valoración</button>
+
+  <div id="resultado"></div>
+  <canvas id="graficoEBITDA" height="200"></canvas>
+</div>
+
+<script>
+let productos = [];
+let chartEBITDA = null;
+
+function actualizarTasaConversion() {
+  const tipo = document.getElementById('tipoNegocio').value;
+  if (tipo !== 'custom') {
+    document.getElementById('conversion').value = tipo;
+  }
+}
+
+function forzarPersonalizado() {
+  document.getElementById('tipoNegocio').value = 'custom';
+}
+
+function agregarProducto() {
+  const index = Date.now();
+  productos.push(index);
+
+  const contenedor = document.getElementById('productos-container');
+  const div = document.createElement('div');
+  div.className = 'producto';
+  div.id = `producto_${index}`;
+  div.innerHTML = `
+    <button class="eliminar-btn" onclick="eliminarProducto(${index})">❌</button>
+    <h4 id="titulo_${index}">🛍️ Producto</h4>
+    <div class="input-group">
+      <label>Precio de venta (€):</label>
+      <input type="number" id="precioVenta_${index}" step="0.01" onchange="calcularBeneficio(${index})">
+    </div>
+    <div class="input-group">
+      <label>Costo de producción (€):</label>
+      <input type="number" id="costo_${index}" step="0.01" onchange="calcularBeneficio(${index})">
+    </div>
+    <div class="input-group">
+      <label>Beneficio por unidad (€):</label>
+      <input type="number" id="beneficio_${index}" readonly>
+    </div>
+  `;
+  contenedor.appendChild(div);
+  reenumerarProductos();
+}
+
+function eliminarProducto(index) {
+  const div = document.getElementById(`producto_${index}`);
+  if (div) {
+    div.remove();
+    productos = productos.filter(i => i !== index);
+    reenumerarProductos();
+    calcularEBITDA();
+  }
+}
+
+function reenumerarProductos() {
+  productos.forEach((id, i) => {
+    const titulo = document.getElementById(`titulo_${id}`);
+    if (titulo) {
+      titulo.innerText = `🛍️ Producto ${i + 1}`;
+    }
+  });
+}
+
+function calcularBeneficio(index) {
+  const precio = parseFloat(document.getElementById(`precioVenta_${index}`).value);
+  const costo = parseFloat(document.getElementById(`costo_${index}`).value);
+  const beneficio = precio - costo;
+  document.getElementById(`beneficio_${index}`).value = !isNaN(beneficio) ? beneficio.toFixed(2) : '';
+}
+
+function calcularEBITDA() {
+  const visitantes = parseFloat(document.getElementById('visitantes').value);
+  const conversion = parseFloat(document.getElementById('conversion').value);
+  const costeMantenimiento = parseFloat(document.getElementById('costeMantenimiento').value);
+  const inversionAmortizada = parseFloat(document.getElementById('inversionAmortizada').value);
+  const inversionMomento = parseFloat(document.getElementById('inversionMomento').value);
+  const multiplicador = parseFloat(document.getElementById('multiplicador').value);
+
+  if ([visitantes, conversion, costeMantenimiento, inversionAmortizada, inversionMomento, multiplicador].some(v => isNaN(v) || v < 0)) {
+    alert("❗ Por favor, completa todos los campos correctamente.");
+    return;
+  }
+
+  const compradoresMes = Math.round((visitantes * conversion) / 100);
+  const unidadesVendidasAnuales = compradoresMes * 12;
+
+  let ingresos = 0, costosProduccion = 0, beneficioTotalUnitario = 0, activos = 0;
+  let activosValidos = 0;
+
+  productos.forEach(i => {
+    const precio = parseFloat(document.getElementById(`precioVenta_${i}`)?.value);
+    const costo = parseFloat(document.getElementById(`costo_${i}`)?.value);
+    if (!isNaN(precio) && !isNaN(costo)) {
+      const beneficio = precio - costo;
+      ingresos += precio * compradoresMes * 12 / productos.length;
+      costosProduccion += costo * compradoresMes * 12 / productos.length;
+      beneficioTotalUnitario += beneficio;
+      activosValidos++;
+    }
+  });
+
+  if (activosValidos > 0) beneficioTotalUnitario = beneficioTotalUnitario / activosValidos;
+
+  const costePersonal = Math.ceil(visitantes / 3000) * 20000;
+  document.getElementById('costePersonal').value = costePersonal;
+
+  const ebitda = ingresos - costosProduccion - costePersonal - costeMantenimiento - inversionAmortizada - inversionMomento;
+  const rentabilidad = (ebitda / ingresos) * 100;
+  const valor = ebitda * multiplicador;
+
+  const compradoresNecesarios = beneficioTotalUnitario > 0
+    ? Math.ceil((costosProduccion + costePersonal + costeMantenimiento + inversionAmortizada + inversionMomento) / (beneficioTotalUnitario * 12))
+    : "N/A";
+
+  let resultadoHTML = `
+    <h3>📝 Resultados</h3>
+    🛍️ Unidades vendidas al año: <strong>${unidadesVendidasAnuales}</strong><br>
+    💵 Ingresos anuales: <strong>${ingresos.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</strong><br>
+    🧾 Costos producción anuales: <strong>${costosProduccion.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</strong><br>
+    👷 Coste personal: <strong>${costePersonal.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</strong><br>
+    🔧 Coste mantenimiento: <strong>${costeMantenimiento.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</strong><br>
+    🏗️ Inversión amortizada: <strong>${inversionAmortizada.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</strong><br>
+    💸 Inversión al momento: <strong>${inversionMomento.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</strong><br>
+    💼 EBITDA: <strong>${ebitda.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</strong><br>
+    📊 Rentabilidad: <strong>${rentabilidad.toFixed(1)}%</strong><br>
+    🏢 Valor estimado: <strong>${valor.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</strong><br>
+    🔢 Clientes que deben comprar por mes para cubrir costes: <strong>${compradoresNecesarios}</strong>
+  `;
+  document.getElementById('resultado').innerHTML = resultadoHTML;
+
+  const ctx = document.getElementById('graficoEBITDA').getContext('2d');
+  if (chartEBITDA) chartEBITDA.destroy();
+  chartEBITDA = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Ingresos', 'Producción', 'Personal', 'Mantenimiento', 'Amortizado', 'Momento', 'EBITDA'],
+      datasets: [{
+        data: [ingresos, costosProduccion, costePersonal, costeMantenimiento, inversionAmortizada, inversionMomento, ebitda],
+        backgroundColor: ['#2ecc71', '#e74c3c', '#3498db', '#9b59b6', '#f39c12', '#f1c40f', '#1abc9c']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.raw.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: v => v.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})
+          }
+        }
+      }
+    }
+  });
+}
+
+agregarProducto();
+</script>
+</body>
+</html>

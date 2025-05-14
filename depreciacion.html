@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora de Depreciación Mejorada</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 20px auto; padding: 20px; background-color: #f9f9f9; }
+        .section { background: white; padding: 25px; margin-bottom: 30px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        input, select { padding: 10px; margin: 10px; width: 220px; border: 2px solid #ddd; border-radius: 6px; }
+        button { background: #4CAF50; color: white; padding: 12px 25px; border: none; border-radius: 6px; cursor: pointer; transition: background 0.3s; }
+        button:hover { background: #45a049; }
+        .chart-container { margin: 30px 0; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; }
+        th, td { padding: 15px; border: 1px solid #eee; text-align: center; }
+        th { background: #f8f9fa; }
+        .highlight { background: #e8f5e9 !important; }
+        .back-button { margin-top: 20px; display: inline-block; background: #ccc; color: #333; padding: 8px 15px; border-radius: 6px; text-decoration: none; }
+        .info-box { background: #e3f2fd; padding: 15px; border-left: 4px solid #2196F3; margin: 20px 0; }
+        .two-columns { display: flex; gap: 20px; }
+        .column { flex: 1; }
+        @media (max-width: 768px) { .two-columns { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <div class="section">
+        <a href="renta_2.html" class="back-button">🏠 Volver al inicio</a>
+        <h2 style="color: #2c3e50; margin-bottom: 25px;">📉 Calculadora Avanzada de Depreciación</h2>
+        
+        <div class="two-columns">
+            <div class="column">
+                <h3 style="color: #2c3e50;">Datos Básicos</h3>
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 8px; color: #555;">Edad del inmueble (años):</label>
+                    <input type="number" id="edad" value="15" min="0" step="1">
+                </div>
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 8px; color: #555;">Precio original (€):</label>
+                    <input type="number" id="precio" value="300000" min="0" step="10000">
+                </div>
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 8px; color: #555;">Tipo de construcción:</label>
+                    <select id="tipoConstruccion">
+                        <option value="ladrillo">Ladrillo/Mampostería</option>
+                        <option value="hormigon">Hormigón Armado</option>
+                        <option value="metalica">Estructura Metálica</option>
+                        <option value="madera">Madera</option>
+                        <option value="mixta">Mixta (Hormigón+Acero)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 8px; color: #555;">Uso del inmueble:</label>
+                    <select id="usoInmueble">
+                        <option value="comercial">Comercial</option>
+                        <option value="residencial">Residencial</option>
+                        <option value="industrial">Industrial</option>
+                        <option value="institucional">Institucional</option>
+                    </select>
+                </div>
+            </div>
+            <div class="column">
+                <h3 style="color: #2c3e50;">Factores Específicos</h3>
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 8px; color: #555;">Ubicación:</label>
+                    <select id="ubicacion">
+                        <option value="costa">Costa (clima marítimo)</option>
+                        <option value="interior">Interior (clima continental)</option>                        <option value="montana">Montaña (clima extremo)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 8px; color: #555;">Estado de conservación:</label>
+                    <select id="estado">
+                        <option value="excelente">Excelente</option>
+                        <option value="bueno">Bueno</option>
+                        <option value="regular">Regular</option>
+                        <option value="malo">Malo</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; margin-bottom: 8px; color: #555;">¿Ha tenido rehabilitaciones?</label>
+                    <select id="rehabilitacion">
+                        <option value="si">Sí</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="calcularDepreciacion()" style="margin-top: 15px;">🔍 Calcular Depreciación</button>
+
+
+        <div id="resultados" style="margin-top: 30px;"></div>
+
+        <div class="chart-container">
+            <canvas id="valorChart"></canvas>
+        </div>
+    </div>
+
+<script>
+let valorChart = null;
+
+const vidaUtil = {
+    hormigon: { min: 50, max: 100 },
+    ladrillo: { min: 50, max: 80 },
+    metalica: { min: 30, max: 50 },
+    madera: { min: 20, max: 30 },
+    mixta: { min: 40, max: 60 }
+};
+
+function calcularDepreciacion() {
+    const edadInput = parseFloat(document.getElementById('edad').value);
+    const precioInput = parseFloat(document.getElementById('precio').value);
+    const tipoConstruccion = document.getElementById("tipoConstruccion").value;
+    const uso = document.getElementById("usoInmueble").value;
+    const ubicacion = document.getElementById("ubicacion").value;
+    const estado = document.getElementById("estado").value;
+    const rehabilitacion = document.getElementById("rehabilitacion").value;
+
+    if(isNaN(edadInput) || edadInput < 0 || isNaN(precioInput) || precioInput <= 0) {
+        alert("⚠️ Por favor ingrese valores válidos");
+        return;
+    }
+
+    let vidaUtilBase = vidaUtil[tipoConstruccion].max;
+    // 2. Aplicar factores de ajuste
+    let factoresAplicados = [];
+
+    if(ubicacion === "costa") {
+        vidaUtilBase *= 0.8;  // Reduce 20% en zonas costeras
+        factoresAplicados.push("Ubicación costa (-20%)");
+    } else if(ubicacion === "montana") {
+        vidaUtilBase *= 0.9;  // Reduce 10% en zonas de montaña
+        factoresAplicados.push("Ubicación montaña (-10%)");
+    }
+
+    // Ajuste por estado
+    if(estado === "regular") {
+        vidaUtilBase *= 0.9;  // Reduce 10% para estado regular
+        factoresAplicados.push("Estado regular (-10%)");
+    } else if(estado === "malo") {
+        vidaUtilBase *= 0.7;  // Reduce 30% para estado malo
+        factoresAplicados.push("Estado malo (-30%)");
+    }
+
+    // Ajuste por rehabilitaciones
+    if(rehabilitacion === "si") {
+        vidaUtilBase *= 1.2;  // Aumenta 20% si tiene rehabilitaciones
+        factoresAplicados.push("Con rehabilitaciones (+20%)");
+    }
+    
+    // Redondeamos la vida útil a años completos
+    vidaUtilBase = Math.round(vidaUtilBase);
+
+ // Calculamos el porcentaje de depreciación anual
+    const porcentajeDepreciacion = (1 / vidaUtilBase) * 100;
+
+// Calculamos la depreciación total acumulada
+    const depreciacionTotal = (Math.min(edadInput, vidaUtilBase) / vidaUtilBase) * precioInput;
+// Calculamos el valor actual
+    const valorActual = Math.max(0, precioInput - depreciacionTotal);
+
+    const html = `
+        <h3 style="color: #2c3e50; margin-bottom: 20px;">📊 Resultados Detallados</h3>
+        <div class="info-box">
+            <h4 style="margin-top: 0; color: #2196F3;">Parámetros utilizados</h4>
+            <p><strong>Tipo de construcción:</strong> ${document.getElementById("tipoConstruccion").options[document.getElementById("tipoConstruccion").selectedIndex].text}</p>
+            <p><strong>Uso del inmueble:</strong> ${document.getElementById("usoInmueble").options[document.getElementById("usoInmueble").selectedIndex].text}</p>
+            <p><strong>Vida útil calculada:</strong> ${Math.round(vidaUtilBase)} años (${porcentajeDepreciacion.toFixed(2)}% anual)</p>
+        </div>
+        <table>
+            <tr>
+                <th>Concepto</th>
+                <th>Valor Inicial</th>
+                <th>Valor Actual</th>
+                <th>Depreciación Total</th>
+                <th>% Depreciado</th>
+            </tr>
+            <tr>
+                <td>Inmueble</td>
+                <td>${precioInput.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</td>
+                <td class="highlight">${valorActual.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</td>
+                <td>${depreciacionTotal.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</td>
+                <td>${((depreciacionTotal/precioInput)*100).toFixed(2)}%</td>
+            </tr>
+        </table>
+        <h4 style="margin-top: 25px; color: #555;">📅 Evolución Anual del Valor</h4>
+        <div class="chart-container">
+            <canvas id="valorChart"></canvas>
+        </div>
+    `;
+    
+    document.getElementById('resultados').innerHTML = html;
+
+    const ctx = document.getElementById('valorChart').getContext('2d');
+    if(valorChart) valorChart.destroy();
+
+    const historial = [];
+    for(let year = 0; year <= Math.round(vidaUtilBase); year++) {
+        const depreciacionAnual = (year / vidaUtilBase) * precioInput;
+        const valorAnual = precioInput - depreciacionAnual;
+        historial.push({
+            año: year,
+            valor: valorAnual,
+            depreciacionAnual: (year > 0) ? (valorAnual - historial[year-1].valor) : 0
+        });
+    }
+
+    valorChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: historial.map(item => item.año),
+            datasets: [{
+                label: 'Valor del Inmueble',
+                data: historial.map(item => item.valor),
+                borderColor: '#4CAF50',
+                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointRadius: 3,
+                pointBackgroundColor: '#4CAF50'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` Valor: ${ctx.parsed.y.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}`,
+                        footer: ctx => `Año: ${ctx[0].label}`
+                    }
+                },
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: { display: true, text: 'Valor (€)', color: '#666' },
+                    ticks: {
+                        callback: value => `${(value/1000).toFixed(0)}k €`,
+                        color: '#666'
+                    },
+                    grid: { color: '#eee' }
+                },
+                x: {
+                    title: { display: true, text: 'Años', color: '#666' },
+                    grid: { display: false },
+                    ticks: { color: '#666' }
+                }
+            }
+        }
+    });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculadoras Inmobiliarias - UNIR La Rioja</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #001f3f;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    header img {
+      width: 120px;
+      display: block;
+      margin: 10px auto 0;
+    }
+    h1 {
+      margin-bottom: 5px;
+    }
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 40px;
+      gap: 30px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 300px;
+      text-align: center;
+      padding: 30px 20px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+    .card h3 {
+      margin: 15px 0 10px;
+      color: #001f3f;
+    }
+    .card p {
+      color: #555;
+      font-size: 15px;
+    }
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      padding: 20px;
+      background: #f0f0f0;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>Calculadoras Inmobiliarias</h1>
+  <h2>UNIR - Universidad Internacional de La Rioja</h2>
+  <img src="unir-logo-png_seeklogo-463285.png" alt="Logo UNIR">
+</header>
+
+<div class="container">
+
+  <div class="card" onclick="location.href='rentabilidad.html'">
+    <h3>📈 Calculadora de Rentabilidad</h3>
+    <p>Estima el valor actual neto y el valor terminal de tu inversión inmobiliaria.</p>
+  </div>
+
+  <div class="card" onclick="location.href='depreciacion.html'">
+    <h3>🏚️ Calculadora de Depreciación</h3>
+    <p>Calcula la depreciación física, funcional y económica de tu inmueble.</p>
+  </div>
+
+  <div class="card" onclick="location.href='ebitda.html'">
+    <h3>🧮Calculadora de EBITDA</h3>
+    <p>Calcula el valor de mercado basándote en el multiplicador de rentas.</p>
+  </div>
+
+</div>
+
+<footer>
+  © 2025 - Universidad Internacional de La Rioja (UNIR)
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,276 @@
+arregla este codigo html porque en la tabla no sale los calculos verdaderos
+
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculadora Método de Rentabilidad Inmobiliaria</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .input-group { margin: 10px 0; }
+    .section { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }
+    label { display: inline-block; width: 300px; }
+    input, select { width: 180px; padding: 5px; }
+    button { margin-top: 20px; padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+    #resultados { margin-top: 30px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+    canvas { margin-top: 30px; }
+    th { background: #f8f9fa; }
+    .highlight { background: #e8f5e9 !important; }
+    .back-button { margin-top: 20px; display: inline-block; background: #ccc; color: #333; padding: 8px 15px; border-radius: 6px; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <div class="section">
+    <a href="renta_2.html" class="back-button">🏠 Volver al inicio</a>
+    <h2>📈 Calculadora de Rentabilidad</h2>
+
+```
+<div class="input-group">
+  <label>Precio actual del inmueble (€):</label>
+  <input type="number" id="precioInmueble" value="300000">
+</div>
+
+<div class="input-group">
+  <label>Ingresos mensuales (€):</label>
+  <input type="number" id="ingresos" value="2000">
+</div>
+
+<div class="input-group">
+  <label>Costes operativos mensuales (€):</label>
+  <input type="number" id="costes" value="470">
+</div>
+
+<div class="input-group">
+  <label>Comunidad Autónoma:</label>
+  <select id="comunidad">
+    <option value="madrid">Madrid</option>
+    <option value="cataluna" selected>Cataluña</option>
+    <option value="andalucia">Andalucía</option>
+  </select>
+</div>
+
+<div class="input-group">
+  <label>Tasa de crecimiento anual (%):</label>
+  <input type="number" id="crecimiento" value="5" step="0.1">
+</div>
+
+<div class="input-group">
+  <label>Tasa de descuento anual (%):</label>
+  <input type="number" id="descuento" value="9" step="0.1">
+</div>
+
+<div class="input-group">
+  <label>Periodo de proyección (años):</label>
+  <input type="number" id="anios" value="5">
+</div>
+
+<div class="input-group">
+  <label>Tasa de crecimiento perpetuo (%):</label>
+  <input type="number" id="crecimientoPerpetuo" value="2" step="0.1">
+</div>
+
+<button onclick="calcularRentabilidad()">Calcular</button>
+
+<div id="resultados">
+  <h3>Resultados</h3>
+  <table id="tablaResultados"></table>
+  <canvas id="grafico"></canvas>
+</div>
+```
+
+  </div>
+
+<script>
+let myChart = null;
+
+const tramosIRPF = {
+  madrid: [
+    { hasta: 12450, tipo: 0.19 },
+    { hasta: 20200, tipo: 0.24 },
+    { hasta: 35200, tipo: 0.30 },
+    { hasta: 60000, tipo: 0.37 },
+    { hasta: 300000, tipo: 0.45 },
+    { hasta: Infinity, tipo: 0.47 }
+  ],
+  cataluna: [
+    { hasta: 12450, tipo: 0.21 },
+    { hasta: 20200, tipo: 0.26 },
+    { hasta: 35200, tipo: 0.33 },
+    { hasta: 60000, tipo: 0.40 },
+    { hasta: 300000, tipo: 0.47 },
+    { hasta: Infinity, tipo: 0.50 }
+  ],
+  andalucia: [
+    { hasta: 12450, tipo: 0.19 },
+    { hasta: 20200, tipo: 0.24 },
+    { hasta: 35200, tipo: 0.30 },
+    { hasta: 60000, tipo: 0.37 },
+    { hasta: 300000, tipo: 0.45 },
+    { hasta: Infinity, tipo: 0.47 }
+  ]
+};
+
+function calcularIRPF(comunidad, baseImponible) {
+  const tramos = tramosIRPF[comunidad];
+  let restante = baseImponible;
+  let totalImpuesto = 0;
+  let anteriorLimite = 0;
+
+  for (let tramo of tramos) {
+    if (baseImponible <= anteriorLimite) break;
+    const baseTramo = Math.min(restante, tramo.hasta - anteriorLimite);
+    totalImpuesto += baseTramo * tramo.tipo;
+    restante -= baseTramo;
+    anteriorLimite = tramo.hasta;
+  }
+
+  return totalImpuesto;
+}
+
+function calcularRentabilidad() {
+  const precioInmueble = parseFloat(document.getElementById('precioInmueble').value);
+  const ingresosMensuales = parseFloat(document.getElementById('ingresos').value);
+  const costesMensuales = parseFloat(document.getElementById('costes').value);
+  const comunidad = document.getElementById('comunidad').value;
+  const tasaCrecimiento = parseFloat(document.getElementById('crecimiento').value) / 100;
+  const tasaDescuento = parseFloat(document.getElementById('descuento').value) / 100;
+  const anios = parseInt(document.getElementById('anios').value);
+  const crecimientoPerpetuo = parseFloat(document.getElementById('crecimientoPerpetuo').value) / 100;
+
+  const ingresosAnuales = ingresosMensuales * 12;
+  const costesAnuales = costesMensuales * 12;
+
+  let beneficioAntesImpuestos = ingresosAnuales - costesAnuales;
+  let impuesto = calcularIRPF(comunidad, beneficioAntesImpuestos);
+  let flujoNeto = beneficioAntesImpuestos - impuesto;
+
+  let flujos = [];
+  let vpTotal = 0;
+  let acumuladoSinTerminal = 0;
+  let valoresAcumuladosSinTerminal = [];
+  let valoresAcumuladosConTerminal = [];
+
+  for (let t = 1; t <= anios; t++) {
+    if (t > 1) {
+      beneficioAntesImpuestos *= (1 + tasaCrecimiento);
+      impuesto = calcularIRPF(comunidad, beneficioAntesImpuestos);
+      flujoNeto = beneficioAntesImpuestos - impuesto;
+    }
+
+    const vp = flujoNeto / Math.pow(1 + tasaDescuento, t);
+    flujos.push({ año: t, flujo: flujoNeto, vp: vp });
+
+    acumuladoSinTerminal += vp;
+    valoresAcumuladosSinTerminal.push(acumuladoSinTerminal);
+
+    if (t < anios) {
+      valoresAcumuladosConTerminal.push(acumuladoSinTerminal);
+    } else {
+      const flujoUltimoAno = flujoNeto * (1 + tasaCrecimiento);
+      const valorTerminal = flujoUltimoAno / (tasaDescuento - crecimientoPerpetuo);
+      const vpTerminal = valorTerminal / Math.pow(1 + tasaDescuento, anios);
+      vpTotal = acumuladoSinTerminal + vpTerminal;
+
+      valoresAcumuladosConTerminal.push(acumuladoSinTerminal + vpTerminal);
+
+      const tabla = document.getElementById('tablaResultados');
+      tabla.innerHTML = `
+        <tr><th>Año</th><th>Flujo Neto (€)</th><th>Valor Presente (€)</th></tr>
+        ${flujos.map(f => `
+          <tr>
+            <td>${f.año}</td>
+            <td>${f.flujo.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</td>
+            <td>${f.vp.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</td>
+          </tr>
+        `).join('')}
+        <tr>
+          <td>Terminal</td>
+          <td>${flujoUltimoAno.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</td>
+          <td>${vpTerminal.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</td>
+        </tr>
+        <tr>
+          <th colspan="2">Valor Total</th>
+          <th>${vpTotal.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</th>
+        </tr>
+        <tr>
+          <th colspan="2">Precio del Inmueble</th>
+          <th>${precioInmueble.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</th>
+        </tr>
+        <tr>
+          <th colspan="2">Diferencia</th>
+          <th class="${vpTotal > precioInmueble ? 'highlight' : ''}">${(vpTotal - precioInmueble).toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})}</th>
+        </tr>
+      `;
+    }
+  }
+
+  const precioInmuebleArray = Array(anios).fill(precioInmueble);
+  const ctx = document.getElementById('grafico').getContext('2d');
+  if (myChart) myChart.destroy();
+
+  myChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [...Array(anios).keys()].map(i => `Año ${i+1}`),
+      datasets: [
+        {
+          label: 'Ganancia acumulada sin venta',
+          data: valoresAcumuladosSinTerminal,
+          borderColor: '#2196F3',
+          backgroundColor: 'rgba(33, 150, 243, 0.1)',
+          fill: true,
+          tension: 0.3
+        },
+        {
+          label: 'Ganancia acumulada con venta',
+          data: valoresAcumuladosConTerminal,
+          borderColor: '#4CAF50',
+          backgroundColor: 'rgba(76, 175, 80, 0.1)',
+          fill: true,
+          tension: 0.3
+        },
+        {
+          label: 'Precio del inmueble',
+          data: precioInmuebleArray,
+          borderColor: '#FF5722',
+          backgroundColor: 'rgba(255, 87, 34, 0.1)',
+          borderDash: [5, 5],
+          fill: false,
+          tension: 0
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: false,
+          ticks: {
+            callback: value => value.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'})
+          }
+        }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) label += ': ';
+              label += context.parsed.y.toLocaleString('es-ES', {style: 'currency', currency: 'EUR'});
+              return label;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+</script>
+
+</body>
+</html>
